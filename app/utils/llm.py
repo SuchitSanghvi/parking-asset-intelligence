@@ -55,12 +55,17 @@ Grain / time dimension:
   session__session_date — use this for any date or time-based grouping.
   Granularities: day (default), week, month.
 
-WHERE filter syntax (MetricFlow DSL):
-  session__is_weekend = true
-  session__day_of_week = 'Friday'
-  session__time_of_day_bucket = 'evening'
-  lot__city = 'San Francisco'
-  lot__market_type = 'urban'
+WHERE filter syntax — MUST use MetricFlow Dimension() wrapper exactly as shown:
+  "{{ Dimension('session__is_weekend') }} = true"
+  "{{ Dimension('session__day_of_week') }} = 'Friday'"
+  "{{ Dimension('session__time_of_day_bucket') }} = 'evening'"
+  "{{ Dimension('lot__city') }} = 'San Francisco'"
+  "{{ Dimension('lot__market_type') }} = 'urban'"
+
+Combine multiple filters with AND:
+  "{{ Dimension('session__is_weekend') }} = true AND {{ Dimension('lot__city') }} = 'Seattle'"
+
+The {{ Dimension('...') }} wrapper is required — bare column names will fail.
 
 Return format — JSON object with these keys:
   {
