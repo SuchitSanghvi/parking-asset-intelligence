@@ -1,56 +1,10 @@
-"""Metrics Reference tab — catalog parsed from marts.yml."""
+"""Metrics Reference tab — catalog sourced from MetricFlow CLI via catalog.py."""
 
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
-import yaml
 import streamlit as st
-
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_MARTS_YML    = os.path.join(_PROJECT_ROOT, "dbt_project", "models", "marts", "marts.yml")
-
-
-def _pretty(name: str) -> str:
-    if "__" in name:
-        name = name.split("__", 1)[1]
-    return name.replace("_", " ").title()
-
-
-@st.cache_data
-def _load_catalog() -> list:
-    with open(_MARTS_YML) as f:
-        yml = yaml.safe_load(f)
-
-    all_dims: set[str] = set()
-    for sm in yml.get("semantic_models", []):
-        prefix = "session" if sm["name"] == "fct_sessions" else "lot"
-        for dim in sm.get("dimensions", []):
-            all_dims.add(f"{prefix}__{dim['name']}")
-
-    examples = {
-        "total_revenue":           "What is total revenue by city in March 2024?",
-        "sessions_count":          "How many sessions happened on Fridays?",
-        "avg_session_duration":    "What is avg session duration by market type?",
-        "avg_revenue_per_session": "Which lot has the highest avg revenue per session?",
-        "dynamic_pricing_lift":    "Which lots show the highest weekend pricing lift?",
-    }
-
-    rows = []
-    for m in yml.get("metrics", []):
-        tp = m.get("type_params", {})
-        has_weekend = any(
-            "is_weekend" in str(tp.get(s, {}).get("filter", ""))
-            for s in ("numerator", "denominator")
-        )
-        dims = sorted(d for d in all_dims if "is_weekend" not in d) \
-               if has_weekend else sorted(all_dims)
-        rows.append({
-            "name": m["name"],
-            "desc": m.get("description", "").strip(),
-            "dims": dims,
-            "example": examples.get(m["name"], ""),
-        })
-    return rows
+from app.utils.catalog import get_metrics, pretty_dim
 
 
 def render():
@@ -62,12 +16,9 @@ def render():
     )
 
     try:
-        catalog = _load_catalog()
-    except FileNotFoundError:
-        st.error(f"marts.yml not found at {_MARTS_YML}.")
-        return
+        catalog = get_metrics()
     except Exception as e:
-        st.error(f"Error loading catalog: {e}")
+        st.error(f"Error loading catalog from MetricFlow: {e}")
         return
 
     for metric in catalog:
@@ -76,9 +27,9 @@ def render():
             with left:
                 st.markdown(
                     f"<div style='font-size:1rem;font-weight:600;color:#0f172a'>"
-                    f"{_pretty(metric['name'])}</div>"
+                    f"{metric['label']}</div>"
                     f"<div style='font-size:0.78rem;color:#64748b;margin-top:4px'>"
-                    f"{metric['desc']}</div>",
+                    f"{metric['description']}</div>",
                     unsafe_allow_html=True
                 )
                 if metric["example"]:
@@ -95,7 +46,7 @@ def render():
                     unsafe_allow_html=True
                 )
                 badges = " ".join(
-                    f'<span class="dim-badge">{_pretty(d)}</span>'
+                    f'<span class="dim-badge">{pretty_dim(d)}</span>'
                     for d in metric["dims"]
                 )
                 st.markdown(badges, unsafe_allow_html=True)
