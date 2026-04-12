@@ -40,6 +40,37 @@ def _ensure_dimension_syntax(where: str) -> str:
     )
 
 
+def _validate_spec(spec: dict) -> None:
+    """
+    Allowlist-validate metric and dimension names against the live MetricFlow catalog.
+    Raises ValueError with a clear message if anything doesn't match.
+    This is the primary prompt-injection defence: even if Claude returns a
+    manipulated spec, unknown metric/dim names are rejected before subprocess execution.
+    """
+    from app.utils.catalog import get_metric_names, get_all_dimensions
+
+    valid_metrics = get_metric_names()
+    valid_dims    = get_all_dimensions()
+
+    metric = spec.get("metric", "")
+    if metric not in valid_metrics:
+        raise ValueError(
+            f"Unknown metric '{metric}'. "
+            f"Available metrics: {', '.join(sorted(valid_metrics))}"
+        )
+
+    for dim in spec.get("group_by", []):
+        if dim not in valid_dims:
+            raise ValueError(
+                f"Unknown dimension '{dim}'. "
+                f"Try one of: {', '.join(sorted(valid_dims)[:8])}…"
+            )
+
+    order_by = spec.get("order_by", "")
+    if order_by and order_by not in valid_dims and order_by not in valid_metrics:
+        raise ValueError(f"Unknown order_by value '{order_by}'.")
+
+
 def run_metric_query(spec: dict) -> pd.DataFrame:
     """
     Execute a MetricFlow query from a spec dict and return results as DataFrame.
@@ -51,11 +82,13 @@ def run_metric_query(spec: dict) -> pd.DataFrame:
       order_by (str, optional)  — sort column
       limit    (int, optional)  — row limit (default 50)
 
-    Raises ValueError if spec contains {"error": true, ...}.
+    Raises ValueError if spec contains {"error": true, ...} or fails allowlist check.
     Raises RuntimeError if the mf CLI exits with a non-zero code.
     """
     if spec.get("error"):
         raise ValueError(spec.get("message", "Query is outside available metrics."))
+
+    _validate_spec(spec)
 
     # Work in a temp directory: copy warehouse + write a temp profiles.yml
     # so MetricFlow gets exclusive access to the copy without conflicting
@@ -123,4 +156,35 @@ def run_metric_query(spec: dict) -> pd.DataFrame:
                 f"MetricFlow query failed:\n{result.stderr or result.stdout}"
             )
 
-        return pd.read_csv(tmp_csv)
+        # MetricFlow doesn't write the CSV when the result is 0 rows
+        if not os.path.exists(tmp_csv):
+            raise ValueError(
+                "No data found for that query. The dataset covers Jan–Mar 2024. "
+                "Try asking about a specific date range, day of week, or lot — "
+                "for example: \"Which city had the highest revenue in February 2024?\""
+            )
+
+        df = pd.read_csv(tmp_csv)
+        return _prettify_columns(df)
+
+
+def _prettify_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Make MetricFlow output column names human-readable.
+
+    MetricFlow uses entity__dimension naming (e.g. lot__market_type,
+    session__day_of_week). Strip the entity prefix, replace underscores
+    with spaces, and title-case everything.
+
+    Examples:
+      lot__market_type    → Market Type
+      session__day_of_week → Day Of Week
+      avg_session_duration → Avg Session Duration
+      total_revenue        → Total Revenue
+    """
+    def _clean(col: str) -> str:
+        if "__" in col:
+            col = col.split("__", 1)[1]
+        return col.replace("_", " ").title()
+
+    return df.rename(columns=_clean)
