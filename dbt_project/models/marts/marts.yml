@@ -85,6 +85,14 @@ models:
           - accepted_values:
               values: ['morning', 'afternoon', 'evening', 'overnight']
 
+      - name: has_local_event
+        description: >
+          True when a local event (sports, concert, festival) occurred in
+          the same city as this lot on the session date. Proxy for
+          high-demand days driven by external factors.
+        data_tests:
+          - not_null
+
   - name: dim_lots
     description: >
       Clean lot dimension. One row per lot. Pass-through from stg_lots with
@@ -224,6 +232,10 @@ semantic_models:
       - name: payment_method
         type: categorical
 
+      - name: has_local_event
+        type: categorical
+        description: Whether a local event occurred in this lot's city on the session date.
+
     measures:
       - name: sessions_count
         description: Count of valid parking sessions.
@@ -257,6 +269,9 @@ semantic_models:
         expr: lot_id
 
     dimensions:
+      - name: lot_name
+        type: categorical
+
       - name: city
         type: categorical
 

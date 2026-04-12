@@ -26,37 +26,55 @@ valid as (
 
 ),
 
+local_events as (
+
+    -- One row per (event_date, city) — prevents fan-out when multiple events
+    -- occur in the same city on the same date.
+    select distinct
+        event_date,
+        lower(city) as city
+    from {{ ref('stg_local_events') }}
+
+),
+
 final as (
 
     select
-        session_id,
-        entry_event_id,
-        exit_event_id,
-        lot_id,
-        license_plate,
-        entry_ts,
-        exit_ts,
-        duration_minutes,
-        amount_charged,
-        payment_method,
-        entry_camera_id,
-        exit_camera_id,
+        s.session_id,
+        s.entry_event_id,
+        s.exit_event_id,
+        s.lot_id,
+        s.license_plate,
+        s.entry_ts,
+        s.exit_ts,
+        s.duration_minutes,
+        s.amount_charged,
+        s.payment_method,
+        s.entry_camera_id,
+        s.exit_camera_id,
 
         -- calendar dimensions
-        cast(entry_ts as date)                              as session_date,
-        dayofweek(entry_ts)                                 as day_of_week_num,
-        dayname(entry_ts)                                   as day_of_week,
-        dayofweek(entry_ts) in (0, 6)                      as is_weekend,
+        cast(s.entry_ts as date)                            as session_date,
+        dayofweek(s.entry_ts)                               as day_of_week_num,
+        dayname(s.entry_ts)                                 as day_of_week,
+        dayofweek(s.entry_ts) in (0, 6)                    as is_weekend,
 
         -- time-of-day bucket based on entry hour
         case
-            when hour(entry_ts) between 5  and 11 then 'morning'
-            when hour(entry_ts) between 12 and 16 then 'afternoon'
-            when hour(entry_ts) between 17 and 20 then 'evening'
+            when hour(s.entry_ts) between 5  and 11 then 'morning'
+            when hour(s.entry_ts) between 12 and 16 then 'afternoon'
+            when hour(s.entry_ts) between 17 and 20 then 'evening'
             else 'overnight'
-        end                                                 as time_of_day_bucket
+        end                                                 as time_of_day_bucket,
 
-    from valid
+        -- local event flag: true when an event occurred in this lot's city on the session date
+        (le.event_date is not null)                         as has_local_event
+
+    from valid s
+    left join {{ ref('dim_lots') }} d on s.lot_id = d.lot_id
+    left join local_events le
+        on cast(s.entry_ts as date) = le.event_date
+        and lower(d.city) = le.city
 
 )
 

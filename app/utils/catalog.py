@@ -26,7 +26,7 @@ _MF_BIN          = os.path.join(_PROJECT_ROOT, "venv312", "bin", "mf")
 # Example questions per metric — the one piece of content that can't be
 # derived from MetricFlow or marts.yml.
 _EXAMPLES = {
-    "total_revenue":           "What is total revenue by city in March 2024?",
+    "total_revenue":           "What is total revenue on days with local events vs without?",
     "sessions_count":          "How many sessions happened on Fridays?",
     "avg_session_duration":    "What is avg session duration by market type?",
     "avg_revenue_per_session": "Which lot has the highest avg revenue per session?",

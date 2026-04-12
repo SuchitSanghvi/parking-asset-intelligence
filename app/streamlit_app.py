@@ -149,17 +149,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
-from app.pages._dashboard   import render as render_dashboard
-from app.pages._ask_data    import render as render_ask_data
-from app.pages._metrics_ref import render as render_metrics_ref
+from app.pages._dashboard import render as render_dashboard
+from app.pages._ask_data  import render as render_ask_data
 
-tab1, tab2, tab3 = st.tabs(["Dashboard", "Ask Your Data", "Metrics Reference"])
+tab1, tab2 = st.tabs(["Dashboard", "Ask Your Data"])
 
 with tab1:
     render_dashboard()
 
 with tab2:
     render_ask_data()
-
-with tab3:
-    render_metrics_ref()

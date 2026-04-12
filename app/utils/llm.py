@@ -13,6 +13,7 @@ Functions:
 
 import json
 import os
+import re
 import pandas as pd
 from anthropic import Anthropic
 from dotenv import load_dotenv
@@ -98,7 +99,13 @@ def translate_to_metric_spec(question: str) -> dict:
         messages=[{"role": "user", "content": question}],
     )
     raw = response.content[0].text.strip()
-    return json.loads(raw)
+    # Extract the first JSON object, ignoring any surrounding markdown or
+    # explanatory text Claude sometimes adds despite instructions.
+    start = raw.find("{")
+    if start == -1:
+        raise ValueError(f"No JSON object in Claude response: {raw[:200]}")
+    obj, _ = json.JSONDecoder().raw_decode(raw, start)
+    return obj
 
 
 def summarize_result(question: str, df: pd.DataFrame) -> str:
