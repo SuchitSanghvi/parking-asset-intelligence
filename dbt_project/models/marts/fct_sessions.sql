@@ -8,11 +8,29 @@
     - Duplicate entries (camera misfires)
 
   Adds time-bucketing and calendar dimensions for analysis.
+
+  Incrementally loaded using entry_ts as the watermark -- new sessions
+  are appended on each run. Uses merge strategy with session_id as the
+  unique key to handle late-arriving exit events.
 */
+
+{{
+    config(
+        materialized='incremental',
+        unique_key='session_id',
+        on_schema_change='append_new_columns'
+    )
+}}
 
 with sessions as (
 
     select * from {{ ref('int_sessions') }}
+    {% if is_incremental() %}
+    where entry_ts > (
+        select coalesce(max(entry_ts), '1900-01-01'::timestamp)
+        from {{ this }}
+    )
+    {% endif %}
 
 ),
 

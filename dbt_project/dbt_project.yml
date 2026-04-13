@@ -25,6 +25,10 @@ models:
     marts:
       +materialized: table
 
+dispatch:
+  - macro_namespace: dbt
+    search_order: ['parking_semantic_layer', 'dbt']
+
 seeds:
   parking_semantic_layer:
     +schema: raw

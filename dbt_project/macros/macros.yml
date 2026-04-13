@@ -1,0 +1,16 @@
+version: 2
+
+macros:
+  - name: safe_divide
+    description: >
+      Safely divides numerator by denominator, returning NULL instead of
+      an error when the denominator is zero or NULL. Used across mart
+      models wherever division could encounter empty denominators --
+      occupancy rate, turnover rate, avg revenue per session.
+    arguments:
+      - name: numerator
+        type: expression
+        description: The value to divide.
+      - name: denominator
+        type: expression
+        description: The value to divide by. Returns NULL if this is 0 or NULL.
