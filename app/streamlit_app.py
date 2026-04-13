@@ -142,6 +142,9 @@ def build_warehouse():
             src = os.path.join(data_dir, f)
             if os.path.exists(src):
                 shutil.copy2(src, seeds_dir)
+        subprocess.run([_VENV_DBT, "deps",
+                        "--profiles-dir", _DBT_PROJECT_DIR],
+                       cwd=_DBT_PROJECT_DIR, check=True)
         subprocess.run([_VENV_DBT, "seed", "--threads", "1",
                         "--profiles-dir", _DBT_PROJECT_DIR],
                        cwd=_DBT_PROJECT_DIR, check=True)
