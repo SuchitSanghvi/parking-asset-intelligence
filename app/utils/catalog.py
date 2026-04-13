@@ -21,7 +21,12 @@ import yaml
 _PROJECT_ROOT    = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 _DBT_PROJECT_DIR = os.path.join(_PROJECT_ROOT, "dbt_project")
 _MARTS_YML       = os.path.join(_PROJECT_ROOT, "dbt_project", "models", "marts", "marts.yml")
-_MF_BIN          = os.path.join(_PROJECT_ROOT, "venv312", "bin", "mf")
+
+# Prefer local venv312 mf binary; fall back to PATH for Streamlit Cloud.
+_local_mf = os.path.join(_PROJECT_ROOT, "venv312", "bin", "mf")
+_MF_BIN   = _local_mf if os.path.exists(_local_mf) else (
+    __import__("shutil").which("mf") or "mf"
+)
 
 # Example questions per metric — the one piece of content that can't be
 # derived from MetricFlow or marts.yml.

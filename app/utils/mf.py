@@ -24,8 +24,11 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 _DBT_PROJECT_DIR = os.path.join(_PROJECT_ROOT, "dbt_project")
 _WAREHOUSE_PATH = os.path.join(_DBT_PROJECT_DIR, "warehouse.duckdb")
 
-# mf binary lives in venv312 (Python 3.12 — MetricFlow requires it)
-_MF_BIN = os.path.join(_PROJECT_ROOT, "venv312", "bin", "mf")
+# Prefer local venv312 mf binary; fall back to PATH for Streamlit Cloud.
+_local_mf = os.path.join(_PROJECT_ROOT, "venv312", "bin", "mf")
+_MF_BIN   = _local_mf if os.path.exists(_local_mf) else (
+    shutil.which("mf") or "mf"
+)
 
 
 def _ensure_dimension_syntax(where: str) -> str:

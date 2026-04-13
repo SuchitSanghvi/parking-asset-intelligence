@@ -15,10 +15,19 @@ import streamlit as st
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _PROJECT_ROOT)
 
+import shutil
+
 _DBT_PROJECT_DIR = os.path.join(_PROJECT_ROOT, "dbt_project")
 _WAREHOUSE_PATH  = os.path.join(_DBT_PROJECT_DIR, "warehouse.duckdb")
-_VENV_DBT        = os.path.join(_PROJECT_ROOT, "venv", "bin", "dbt")
-_VENV_PYTHON     = os.path.join(_PROJECT_ROOT, "venv", "bin", "python")
+
+# Prefer the local venv binaries (used locally); fall back to whatever is on
+# PATH so the cold-start build works on Streamlit Cloud where venv/ doesn't exist.
+_VENV_DBT    = (os.path.join(_PROJECT_ROOT, "venv", "bin", "dbt")
+                if os.path.exists(os.path.join(_PROJECT_ROOT, "venv", "bin", "dbt"))
+                else shutil.which("dbt") or "dbt")
+_VENV_PYTHON = (os.path.join(_PROJECT_ROOT, "venv", "bin", "python")
+                if os.path.exists(os.path.join(_PROJECT_ROOT, "venv", "bin", "python"))
+                else sys.executable)
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
