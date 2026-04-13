@@ -10,8 +10,17 @@ _GITHUB_URL   = "https://github.com/SuchitSanghvi/parking-asset-intelligence"
 
 
 def _strip_screenshots(content: str) -> str:
-    """Remove local <img> tags that won't resolve in Streamlit Cloud."""
-    return re.sub(r'<img\s+src="docs/screenshots/[^"]*"[^/]*/>', "", content)
+    """Remove the entire Screenshots section (heading + images + surrounding ---) from README."""
+    # Remove standalone <img> tags pointing at docs/screenshots/
+    content = re.sub(r'<img\s+src="docs/screenshots/[^"]*"[^/]*/>\n?', "", content)
+    # Remove the ## Screenshots section up to the next --- or ## heading
+    content = re.sub(
+        r'## Screenshots\n.*?(?=\n---|\n## )',
+        "",
+        content,
+        flags=re.DOTALL,
+    )
+    return content
 
 
 def render():

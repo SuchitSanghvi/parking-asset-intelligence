@@ -93,7 +93,7 @@ def render():
                 "Select one or more lots to display</div>",
                 unsafe_allow_html=True
             )
-            selected = st.multiselect("Lots", all_lots, default=[],
+            selected = st.multiselect("Lots", all_lots, default=all_lots[:6],
                                       label_visibility="collapsed",
                                       placeholder="Choose lots…")
             if selected:
