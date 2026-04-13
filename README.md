@@ -19,7 +19,7 @@ End-to-end analytics engineering on parking asset data: raw events to tested met
 ### Ask Data:
 <img src="docs/screenshots/image.png" width="700"/>
 
-**Live app:** [Streamlit Cloud URL -- add after deployment]
+**Live app:** https://parking-asset-intelligence.streamlit.app/
 
 ---
 
