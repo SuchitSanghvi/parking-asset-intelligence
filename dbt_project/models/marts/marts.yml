@@ -147,6 +147,26 @@ models:
           - accepted_values:
               values: ['small', 'medium', 'large', 'unknown']
 
+  - name: dim_time
+    description: >
+      Time spine table covering all dates in the session data window.
+      Required by MetricFlow to compute cumulative metrics and
+      period-over-period comparisons. One row per calendar date.
+    columns:
+      - name: date_day
+        description: Primary key. Calendar date.
+        data_tests:
+          - not_null
+          - unique
+      - name: week_start
+        description: Monday of the ISO week containing this date.
+      - name: month_start
+        description: First day of the calendar month.
+      - name: is_weekend
+        description: True for Saturday and Sunday.
+        data_tests:
+          - not_null
+
   - name: mart_lot_daily
     description: >
       Pre-aggregated fact table at lot × calendar day grain. Used by the
@@ -201,6 +221,8 @@ semantic_models:
       Semantic model on the fct_sessions fact table. Defines the entities,
       dimensions, and measures used to build all parking metrics.
     model: ref('fct_sessions')
+    defaults:
+      agg_time_dimension: session_date
 
     entities:
       - name: session
@@ -285,6 +307,24 @@ semantic_models:
         type: categorical
 
 
+  - name: dim_time
+    description: >
+      Time spine for MetricFlow. One row per calendar date. Required for
+      cumulative metrics and period-over-period (offset window) metrics.
+    model: ref('dim_time')
+
+    entities:
+      - name: time_day
+        type: primary
+        expr: date_day
+
+    dimensions:
+      - name: date_day
+        type: time
+        type_params:
+          time_granularity: day
+
+
 metrics:
   - name: total_revenue
     label: Total Revenue
@@ -333,3 +373,31 @@ metrics:
         name: total_revenue
         filter: "{{ Dimension('session__is_weekend') }} = false"
         alias: weekday_revenue
+
+  - name: cumulative_revenue
+    label: Cumulative Revenue
+    description: >
+      Total revenue accumulated from the start of the selected time window
+      to the current date. Shows revenue trajectory over a period rather
+      than just the period total. Useful for tracking progress toward
+      monthly revenue targets across a parking portfolio.
+    type: cumulative
+    type_params:
+      measure: total_revenue
+
+  - name: wow_revenue_change
+    label: Week-over-Week Revenue Change
+    description: >
+      Revenue this week minus revenue the same week prior, expressed
+      as an absolute dollar change. A positive value means the lot
+      generated more revenue this week than last week. Proxy for whether
+      dynamic pricing adjustments are producing revenue growth.
+    type: derived
+    type_params:
+      expr: current_revenue - prior_revenue
+      metrics:
+        - name: total_revenue
+          alias: current_revenue
+        - name: total_revenue
+          alias: prior_revenue
+          offset_window: 1 week

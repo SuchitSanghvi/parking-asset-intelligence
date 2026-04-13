@@ -91,16 +91,11 @@ final as (
         sa.avg_price_per_session,
         pc.peak_concurrent_sessions,
 
-        -- explicit double cast on division to prevent integer truncation
-        case
-            when l.capacity is not null and l.capacity > 0
-            then round(pc.peak_concurrent_sessions::double / l.capacity, 4)
-        end                                 as occupancy_rate,
+        round({{ safe_divide('pc.peak_concurrent_sessions', 'l.capacity') }}, 4)
+                                            as occupancy_rate,
 
-        case
-            when l.capacity is not null and l.capacity > 0
-            then round(sa.total_sessions::double / l.capacity, 4)
-        end                                 as turnover_rate,
+        round({{ safe_divide('sa.total_sessions', 'l.capacity') }}, 4)
+                                            as turnover_rate,
 
         exists (
             select 1
