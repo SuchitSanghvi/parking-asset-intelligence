@@ -13,7 +13,7 @@ End-to-end analytics engineering on parking asset data: raw events to tested met
 
 **Live app:** https://parking-asset-intelligence.streamlit.app/
 
-## Screenshots
+## Features
 
 ### Portfolio Dashboard:
 <img src="docs/screenshots/Screenshot 2026-04-12 at 9.51.27 PM.png" width="700"/>
